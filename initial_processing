@@ -1,0 +1,129 @@
+---
+title: Initial processing and analysis of DNA methylation data from the Infinium MethylationEPIC BeadChIP (Illumina)
+subtitle: data from oncohistone expression in NCCIT cells 
+author: Bailey Tibben
+date: 2021 April 1
+---
+
+#Load R packages
+library(sesame)
+library(tidyverse)
+library(data.table)
+library(minfi)
+
+setwd("~/Documents/Rothbart_Lab/Experiments/NCCIT/EPIC Array 20210309")
+
+#Pull .IDAT files from the working directory and read in as a data.frame where rows are probe IDs and columns are signal intensity across samples
+IDATprefixes <- searchIDATprefixes(dir.name ="~/Documents/Rothbart_Lab/Experiments/NCCIT/EPIC Array 20210309/IDATs")
+
+#compute matrix of beta values from normalized probe signal intensities
+betas.KtoM <- openSesame(IDATprefixes)
+#remove probes where any sample had missing data, NA
+betas.KtoM <- betas.KtoM[complete.cases(betas.KtoM),]
+
+#label and organize samples into a data.frame 
+colnames(betas.KtoM) <- c("DAC","K27M1","K27M3","K36M1", "K36M2", "K36M3","K27M2","Parent1","Parent2","H3WT1","H3WT2","K9M1","K9M2","K4M1","K4M2","K4M3")
+betasdf.KtoM <- data.frame(betas.KtoM)
+betasdf.KtoM <- betasdf.KtoM[,c(8:11,14:16,12,13,2,7,3,4,5,6,1)]
+
+#The following set of plots provide a global view of the data
+##density line plot of beta values
+plot(density(betasdf$Parent1), col = "black", xlim = c(0,1), lwd =2)
+lines(density(betasdf$Parent2), col = "black", lwd =2)
+lines(density(betasdf$DAC), col = "red", lwd =2)
+lines(density(betasdf$H3WT1), col = "green", lwd =2)
+lines(density(betasdf$H3WT2), col = "green", lwd =2)
+lines(density(betasdf$K4M1), col = "cadetblue", lwd =2)
+lines(density(betasdf$K4M2), col = "cadetblue", lwd =2)
+lines(density(betasdf$K4M3), col = "cadetblue", lwd =2)
+lines(density(betasdf$K9M1), col = "blue", lwd =2)
+lines(density(betasdf$K9M2), col = "blue", lwd =2)
+lines(density(betasdf$K27M1), col = "orange", lwd =2)
+lines(density(betasdf$K27M2), col = "orange", lwd =2)
+lines(density(betasdf$K27M3), col = "orange", lwd =2)
+lines(density(betasdf$K36M1), col = "mediumorchid2", lwd =2)
+lines(density(betasdf$K36M2), col = "mediumorchid2", lwd =2)
+lines(density(betasdf$K36M3), col = "mediumorchid2", lwd =2)
+
+##density bean plot
+densityPlot(betas.KtoM,  main = "Beta Values", legend = FALSE, xlab = "Beta values",pal=brewer.pal(12, "Set3"))
+densityBeanPlot(betas.DM3KO, main = "Beta Values")
+
+##density scatter plot
+p <- ggplot(betasdf, aes(x=as.numeric(H3WT1), y=K4M1)) +
+  geom_bin2d(bins = 500) +
+  theme_bw() +
+  scale_fill_viridis_c(option = "magma", trans = "log2") +
+  xlim(0,1) +
+  ylim(0,1) 
+p
+
+#average beta values from biological replicates
+betasdf.KtoM$Parent.avg <- rowMeans(betasdf.KtoM[,c(2,3)], na.rm=TRUE)
+betasdf.KtoM$H3WT.avg <- rowMeans(betasdf.KtoM[,c(4,5)], na.rm=TRUE)
+betasdf.KtoM$K4M.avg <- rowMeans(betasdf.KtoM[,c(6:8)], na.rm=TRUE)
+betasdf.KtoM$K9M.avg <- rowMeans(betasdf.KtoM[,c(9,10)], na.rm=TRUE)
+betasdf.KtoM$K27M.avg <- rowMeans(betasdf.KtoM[,c(11,13)], na.rm=TRUE)
+betasdf.KtoM$K36M.avg <- rowMeans(betasdf.KtoM[,c(14,16)], na.rm=TRUE)
+
+#compute delta beta values between controls and histone transgenes                      	    
+betasdf.KtoM <- mutate(betasdf.KtoM, H3WT_dB = H3WT.avg - Parent.avg)
+betasdf.KtoM <- mutate(betasdf.KtoM, DAC_dB = DAC - Parent.avg)
+betasdf.KtoM <- mutate(betasdf.KtoM, K4M_dB = K4M.avg - H3WT.avg)
+betasdf.KtoM <- mutate(betasdf.KtoM, K9M_dB = K9M.avg - H3WT.avg)
+betasdf.KtoM <- mutate(betasdf.KtoM, K27M_dB = K27M.avg - H3WT.avg)
+betasdf.KtoM <- mutate(betasdf.KtoM, K36M_dB = K36M.avg - H3WT.avg)
+
+##Delta beta histograms
+H3WT_dB <- betasdf.KtoM$H3WT_dB
+hist(H3WT_dB, breaks=500, xlim=c(-0.4,0.4))
+
+DAC_dB <- betasdf.KtoM$DAC_dB
+hist(DAC_dB, breaks=500, xlim=c(-0.4,0.4))
+
+K4M_dB <- betasdf.KtoM$K4M_dB
+hist(K4M_dB, breaks=500, xlim=c(-0.4,0.4))
+
+K9M_dB <- betasdf.KtoM$K9M_dB
+hist(K9M_dB, breaks=500, xlim=c(-0.4,0.4))
+
+K27M_dB <- betasdf.KtoM$K27M_dB
+hist(K27M_dB, breaks=500, xlim=c(-0.4,0.4))
+
+K36M_dB <- betasdf.KtoM$K36M_dB
+hist(K36M_dB, breaks=500, xlim=c(-0.4,0.4))
+
+#Annotate probes using manifest curated by R. Tiedemann
+setwd("/Volumes/projects_secondary/rothbart")
+manifest2 <- fread("EPIC.coordinates.ann.txt")
+colnames(manifest2) <- c("Chr","Start","Stop", "probeID", "Chr.del","Start.del","Stop.del",
+                         "detailed.annotation","distance.to.TSS","RefSeq.1","RefSeq.2","ENSEMBL",
+                         "Gene.Name","alternative.name","tx.type","annotation","Chr.CGI","Start.CGI","Stop.CGI", "CGI.name","distance.to.CGI",
+                         "CGI.annotation","CpG.density","No.CpGs","No.CpGs.WZ","CpG.context","overlap")
+manifest2 <- manifest2[,c(1:4,8:26)]
+
+#merge manifest with oncohistone data using probeID
+betasdf.KtoM <- tibble::rownames_to_column(betasdf.KtoM, "probeID")
+betasdf.KtoM.ann <- merge(x = betasdf.KtoM, y = manifest2, by = "probeID", all.x = TRUE)
+
+#subset probes by genomic annotation
+betasdf.KtoM.exon <- subset(betasdf.DM3KO.ann, annotation=="exon")
+betasdf.KtoM.intron <- subset(betasdf.DM3KO.ann, annotation=="intron")
+betasdf.KtoM.UTR3 <- subset(betasdf.DM3KO.ann, annotation=="3'")
+betasdf.KtoM.UTR5 <- subset(betasdf.DM3KO.ann, annotation=="5'")
+betasdf.KtoM.intergenic <- subset(betasdf.DM3KO.ann, annotation=="Intergenic")
+betasdf.KtoM.TSS <- subset(betasdf.DM3KO.ann, annotation=="promoter-TSS")
+betasdf.KtoM.TTS <- subset(betasdf.DM3KO.ann, annotation=="TTS")
+betasdf.KtoM.CGI <- subset(betasdf.DM3KO.ann, CGI.annotation=="Island")
+
+#violin plots of beta values by genomic annotation
+betasdf.KtoM.exon <- betasdf.KtoM.exon[,c(1:17)]
+betasdf.KtoM.exon.melt <- melt(betasdf.KtoM.exon, id="probeID")
+
+p <- ggplot(betasdf.KtoM.exon.melt, aes(x=variable, y=value, fill=variable)) + 
+  geom_violin() +
+  stat_summary(fun = "mean",
+               geom = "crossbar", 
+               width = 0.5,
+               colour = "black")
+p
