@@ -1,0 +1,74 @@
+---
+title: Analysis of publicly available DNA methylation data for DNMT3B knockout in HCT116 cells
+author: Bailey Tibben
+date: 2022 August 21
+---
+
+#Load R packages
+library(sesame)
+library(tidyverse)
+library(data.table)
+library(pheatmap)
+
+#my DNMT3B KO - HCT116
+setwd("~/Documents/Documents/Rothbart_Lab/Experiments/HCT116 3BKO/EPIC_Jun2022/")
+
+#Pull .IDAT files from the working directory and read in as a data.frame where rows are probe IDs and columns are signal intensity across samples
+IDATprefixes <- searchIDATprefixes(dir.name ="~/Documents/Documents/Rothbart_Lab/Experiments/HCT116 3BKO/EPIC_Jun2022/IDATs")
+
+#compute matrix of beta values from normalized probe signal intensities
+betas <- openSesame(IDATprefixes)
+#remove probes where any sample had missing data, NA
+betas <- betas[complete.cases(betas),]
+
+#label and organize samples into a data.frame 
+colnames(betas) <- c("Parent","Chr12.A2","Chr12.D11","Chr12.G2","DM3BKO.E4","DM3BKO.H3","DM3BKO.H8")
+betasdf <- data.frame(betas)
+
+#Read in public HCT116 DNMT3B KO datasets
+setwd("~/Documents/Documents/Rothbart_Lab/Experiments/3BKO.pub.data")
+
+##GSE68344 - Duymich et al Nature Comm
+betas2 <- read.table("GSM1668822-26728.txt", header=TRUE)
+colnames(betas2) <- c("probeID","DM3BKO.duymich")
+
+##Cai et al 2016 Genome Research 
+betas.CaiNS <- read.table("Cai_HCT116_NS.txt", header=TRUE)
+colnames(betas.CaiNS) <- c("probeID","NS")
+
+betas.Cai.c3BKO <- read.table("Cai_HCT116_3BKO_CRISPR.txt", header=TRUE)
+colnames(betas.Cai.c3BKO) <- c("probeID","cDM3BKO")
+
+betas.Cai.g3BKO <- read.table("Cai_HCT116_3BKO_1.txt", header=TRUE)
+colnames(betas.Cai.g3BKO) <- c("probeID","gDM3BKO")
+
+##GSE54843, Tiedemann et al 2014 Cell Reports
+betas.RLT.WT <- read.table("GSM1325001-47050.txt", header=TRUE)
+colnames(betas.RLT.WT) <- c("probeID","RLT.WT")
+
+betas.RLT.3BKO <- read.table("GSM1325003-47052.txt", header=TRUE)
+colnames(betas.RLT.3BKO) <- c("probeID","RLT.3BKO")
+
+#merge datasets
+betasdf <- tibble::rownames_to_column(betasdf, "probeID")
+betasdf <- merge(x=betas.RLT.WT, y=betasdf, by="probeID")
+betasdf <- betasdf[,c(1,8:14,4:6,2,7,3)]
+
+#Annotate probes using manifest curated by R. Tiedemann, for solo WCGW analysis 
+setwd("/Volumes/projects_secondary/rothbart")
+manifest2 <- fread("EPIC.coordinates.ann.txt")
+colnames(manifest2) <- c("Chr","Start","Stop", "probeID", "Chr.del","Start.del","Stop.del",
+                         "detailed.annotation","distance.to.TSS","RefSeq.1","RefSeq.2","ENSEMBL",
+                         "Gene.Name","alternative.name","tx.type","annotation","Chr.CGI","Start.CGI","Stop.CGI", "CGI.name","distance.to.CGI",
+                         "CGI.annotation","CpG.density","No.CpGs","No.CpGs.WZ","CpG.context","overlap")
+manifest2 <- manifest2[,c(1:4,8:26)]
+
+#isolate solo WCGW probes
+betasdf.ann <- merge(x=betasdf, y=manifest2, by="probeID")
+soloWCGW <- subset(betasdf.ann, No.CpGs.WZ=="Solo" & CpG.context=="WCGW")
+
+#plot heatmap of solo WCGW probes across  cell lines
+rownames(soloWCGW) <- soloWCGW[,1]
+soloWCGW <- soloWCGW[,-1]
+soloWCGW <- soloWCGW[order(soloWCGW$Parent),]
+solo.phm <- pheatmap(soloWCGW, cluster_rows = F, cluster_cols = F, show_rownames = F, gaps_col = 7,color=colorRampPalette(c("navy", "yellow"))(50))
