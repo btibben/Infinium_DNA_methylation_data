@@ -28,26 +28,25 @@ betasdf.KtoM <- betasdf.KtoM[,c(8:11,14:16,12,13,2,7,3,4,5,6,1)]
 
 #The following set of plots provide a global view of the data
 ##density line plot of beta values
-plot(density(betasdf$Parent1), col = "black", xlim = c(0,1), lwd =2)
-lines(density(betasdf$Parent2), col = "black", lwd =2)
-lines(density(betasdf$DAC), col = "red", lwd =2)
-lines(density(betasdf$H3WT1), col = "green", lwd =2)
-lines(density(betasdf$H3WT2), col = "green", lwd =2)
-lines(density(betasdf$K4M1), col = "cadetblue", lwd =2)
-lines(density(betasdf$K4M2), col = "cadetblue", lwd =2)
-lines(density(betasdf$K4M3), col = "cadetblue", lwd =2)
-lines(density(betasdf$K9M1), col = "blue", lwd =2)
-lines(density(betasdf$K9M2), col = "blue", lwd =2)
-lines(density(betasdf$K27M1), col = "orange", lwd =2)
-lines(density(betasdf$K27M2), col = "orange", lwd =2)
-lines(density(betasdf$K27M3), col = "orange", lwd =2)
-lines(density(betasdf$K36M1), col = "mediumorchid2", lwd =2)
-lines(density(betasdf$K36M2), col = "mediumorchid2", lwd =2)
-lines(density(betasdf$K36M3), col = "mediumorchid2", lwd =2)
+plot(density(betasdf.KtoM$Parent1), col = "black", xlim = c(0,1), lwd =2)
+lines(density(betasdf.KtoM$Parent2), col = "black", lwd =2)
+lines(density(betasdf.KtoM$DAC), col = "red", lwd =2)
+lines(density(betasdf.KtoM$H3WT1), col = "green", lwd =2)
+lines(density(betasdf.KtoM$H3WT2), col = "green", lwd =2)
+lines(density(betasdf.KtoM$K4M1), col = "cadetblue", lwd =2)
+lines(density(betasdf.KtoM$K4M2), col = "cadetblue", lwd =2)
+lines(density(betasdf.KtoM$K4M3), col = "cadetblue", lwd =2)
+lines(density(betasdf.KtoM$K9M1), col = "blue", lwd =2)
+lines(density(betasdf.KtoM$K9M2), col = "blue", lwd =2)
+lines(density(betasdf.KtoM$K27M1), col = "orange", lwd =2)
+lines(density(betasdf.KtoM$K27M2), col = "orange", lwd =2)
+lines(density(betasdf.KtoM$K27M3), col = "orange", lwd =2)
+lines(density(betasdf.KtoM$K36M1), col = "mediumorchid2", lwd =2)
+lines(density(betasdf.KtoM$K36M2), col = "mediumorchid2", lwd =2)
+lines(density(betasdf.KtoM$K36M3), col = "mediumorchid2", lwd =2)
 
 ##density bean plot
-densityPlot(betas.KtoM,  main = "Beta Values", legend = FALSE, xlab = "Beta values",pal=brewer.pal(12, "Set3"))
-densityBeanPlot(betas.DM3KO, main = "Beta Values")
+densityBeanPlot(betas.KtoM, main = "Beta Values")
 
 ##density scatter plot
 p <- ggplot(betasdf, aes(x=as.numeric(H3WT1), y=K4M1)) +
@@ -107,14 +106,14 @@ betasdf.KtoM <- tibble::rownames_to_column(betasdf.KtoM, "probeID")
 betasdf.KtoM.ann <- merge(x = betasdf.KtoM, y = manifest2, by = "probeID", all.x = TRUE)
 
 #subset probes by genomic annotation
-betasdf.KtoM.exon <- subset(betasdf.DM3KO.ann, annotation=="exon")
-betasdf.KtoM.intron <- subset(betasdf.DM3KO.ann, annotation=="intron")
-betasdf.KtoM.UTR3 <- subset(betasdf.DM3KO.ann, annotation=="3'")
-betasdf.KtoM.UTR5 <- subset(betasdf.DM3KO.ann, annotation=="5'")
-betasdf.KtoM.intergenic <- subset(betasdf.DM3KO.ann, annotation=="Intergenic")
-betasdf.KtoM.TSS <- subset(betasdf.DM3KO.ann, annotation=="promoter-TSS")
-betasdf.KtoM.TTS <- subset(betasdf.DM3KO.ann, annotation=="TTS")
-betasdf.KtoM.CGI <- subset(betasdf.DM3KO.ann, CGI.annotation=="Island")
+betasdf.KtoM.exon <- subset(betasdf.KtoM.ann, annotation=="exon")
+betasdf.KtoM.intron <- subset(betasdf.KtoM.ann, annotation=="intron")
+betasdf.KtoM.UTR3 <- subset(betasdf.KtoM.ann, annotation=="3'")
+betasdf.KtoM.UTR5 <- subset(betasdf.KtoM.ann, annotation=="5'")
+betasdf.KtoM.intergenic <- subset(betasdf.KtoM.ann, annotation=="Intergenic")
+betasdf.KtoM.TSS <- subset(betasdf.KtoM.ann, annotation=="promoter-TSS")
+betasdf.KtoM.TTS <- subset(betasdf.KtoM.ann, annotation=="TTS")
+betasdf.KtoM.CGI <- subset(betasdf.KtoM.ann, CGI.annotation=="Island")
 
 #violin plots of beta values by genomic annotation
 betasdf.KtoM.exon <- betasdf.KtoM.exon[,c(1:17)]
